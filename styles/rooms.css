@@ -1,0 +1,296 @@
+.rooms-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.rooms-header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.rooms-error {
+    padding: 16px;
+    background-color: var(--danger);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 24px;
+}
+
+.room-form-card {
+    border: 2px solid var(--primary);
+    margin-bottom: 24px;
+}
+
+.room-form-title {
+    margin-bottom: 16px;
+}
+
+.room-form-grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.room-form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.room-form-label {
+    display: block;
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+}
+
+.room-form-input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+}
+
+.room-form-small {
+    color: var(--text-muted);
+}
+
+.room-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.room-form-actions-full {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.room-form-warning {
+    padding: 20px;
+    background-color: rgba(234, 179, 8, 0.1);
+    color: #a16207;
+    border-radius: 8px;
+    border: 1px solid #fef08a;
+}
+
+.room-form-full-col {
+    grid-column: 1 / -1;
+}
+
+.rooms-empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.rooms-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rooms-table th,
+.rooms-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.rooms-table th.text-right {
+    text-align: right;
+}
+
+.rooms-table td.font-bold {
+    font-weight: bold;
+}
+
+.rooms-table td.text-right {
+    text-align: right;
+}
+
+.room-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.room-badge-occupied {
+    color: var(--primary);
+}
+
+.room-badge-available {
+    color: inherit;
+}
+
+.view-room-btn {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+
+
+.room-detail-container {
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.room-detail-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+}
+
+.room-detail-back-btn {
+    text-decoration: none;
+}
+
+.room-detail-title {
+    margin: 0;
+}
+
+.room-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.room-detail-col {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.card-title {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 12px;
+    line-height: 1.6;
+}
+
+.info-grid-financial {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 12px;
+    line-height: 1.6;
+}
+
+.info-label {
+    color: var(--text-muted);
+}
+
+.info-value-bold {
+    font-weight: 500;
+}
+
+.info-price {
+    font-weight: bold;
+    color: var(--success);
+}
+
+.room-status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+}
+
+.occupant-container {
+    margin-bottom: 16px;
+}
+
+.occupant-name {
+    margin: 0 0 4px 0;
+    color: var(--primary);
+}
+
+.occupant-contact {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.occupant-period-box {
+    background-color: var(--bg-secondary);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+}
+
+.occupant-actions {
+    margin-top: 16px;
+    text-align: right;
+}
+
+.occupant-actions-btn {
+    font-size: 0.875rem;
+    padding: 6px 12px;
+    text-decoration: none;
+}
+
+.occupant-vacant-box {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.occupant-vacant-btn {
+    margin-top: 12px;
+    display: inline-block;
+    text-decoration: none;
+}
+
+.maintenance-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.maintenance-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.maintenance-title {
+    font-weight: 500;
+}
+
+.maintenance-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.maintenance-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.maintenance-badge {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.maintenance-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+}
