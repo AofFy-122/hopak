@@ -25,7 +25,34 @@ export default async function TenantsPage(props) {
             .select('*')
             .eq('branch_id', branch_id)
             .order('created_at', { ascending: false })
-        tenants = data || []
+            
+        const { data: users } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role', 'tenant')
+            .order('created_at', { ascending: false })
+
+        let mergedTenants = data || []
+        
+        if (users) {
+            const existingUserIds = new Set((data || []).map(t => t.user_id).filter(Boolean))
+            const pendingTenants = users
+                .filter(u => !existingUserIds.has(u.id))
+                .map(u => ({
+                    id: `pending-${u.id}`,
+                    is_pending: true,
+                    first_name: u.full_name?.split(' ')[0] || 'Unknown',
+                    last_name: u.full_name?.split(' ').slice(1).join(' ') || '',
+                    email: u.email,
+                    phone: u.phone || '',
+                    behavior_score: 100,
+                    user_id: u.id,
+                }))
+                
+            mergedTenants = [...pendingTenants, ...mergedTenants]
+        }
+        
+        tenants = mergedTenants
 
 
         const { data: rooms } = await supabase
@@ -72,19 +99,19 @@ export default async function TenantsPage(props) {
                     <form action={handleAdmitTenant} className="tenant-form-grid">
                         <div>
                             <label className="tenant-form-label">{t('firstName')}</label>
-                            <input name="first_name" required className="tenant-form-input" placeholder="example" />
+                            <input name="first_name" required className="tenant-form-input" placeholder="example" defaultValue={searchParams?.first_name || ''} />
                         </div>
                         <div>
                             <label className="tenant-form-label">{t('lastName')}</label>
-                            <input name="last_name" required className="tenant-form-input" placeholder="example" />
+                            <input name="last_name" required className="tenant-form-input" placeholder="example" defaultValue={searchParams?.last_name || ''} />
                         </div>
                         <div>
                             <label className="tenant-form-label">{t('email')}</label>
-                            <input name="email" type="email" className="tenant-form-input" placeholder="example@example.com" />
+                            <input name="email" type="email" className="tenant-form-input" placeholder="example@example.com" defaultValue={searchParams?.email || ''} />
                         </div>
                         <div>
                             <label className="tenant-form-label">{t('phone')}</label>
-                            <input name="phone" className="tenant-form-input" placeholder="0812345678" />
+                            <input name="phone" className="tenant-form-input" placeholder="0812345678" defaultValue={searchParams?.phone || ''} />
                         </div>
                         <div>
                             <label className="tenant-form-label">{t('assignRoom')}</label>
@@ -144,7 +171,11 @@ export default async function TenantsPage(props) {
                                             </span>
                                         </td>
                                         <td className="text-right">
-                                            <Link href={`/tenants/${tenant.id}`} className="btn btn-outline view-profile-btn">{t('viewProfile')}</Link>
+                                            {tenant.is_pending ? (
+                                                <Link href={`/tenants?action=new&email=${encodeURIComponent(tenant.email)}&first_name=${encodeURIComponent(tenant.first_name)}&last_name=${encodeURIComponent(tenant.last_name)}&phone=${encodeURIComponent(tenant.phone || '')}`} className="btn btn-primary">{t('admitTenant') || 'Admit'}</Link>
+                                            ) : (
+                                                <Link href={`/tenants/${tenant.id}`} className="btn btn-outline view-profile-btn">{t('viewProfile')}</Link>
+                                            )}
                                         </td>
                                     </tr>
                                 )

@@ -98,3 +98,56 @@ export async function admitTenantAction(formData, branch_id) {
 
     return { success: true }
 }
+
+export async function assignExistingTenantAction(formData) {
+    const supabase = await createClient()
+
+    const tenant_id = formData.get('tenant_id')
+    const room_id = formData.get('room_id')
+    const start_date = formData.get('start_date')
+    const end_date = formData.get('end_date')
+
+    if (!tenant_id || !room_id || !start_date || !end_date) {
+        return { error: 'Missing required fields' }
+    }
+
+    const { data: roomCheck, error: roomCheckError } = await supabase
+        .from('rooms')
+        .select('status')
+        .eq('id', room_id)
+        .single()
+
+    if (roomCheckError || !roomCheck || roomCheck.status !== 'available') {
+        return { error: 'This room is not available.' }
+    }
+
+    const { error: contractError } = await supabase
+        .from('contracts')
+        .insert([{
+            tenant_id,
+            room_id,
+            start_date,
+            end_date,
+            is_active: true
+        }])
+
+    if (contractError) {
+        return { error: contractError.message }
+    }
+
+    const { error: roomError } = await supabase
+        .from('rooms')
+        .update({ status: 'occupied' })
+        .eq('id', room_id)
+
+    if (roomError) {
+        console.error('Error updating room status:', roomError)
+    }
+
+    revalidatePath('/tenants')
+    revalidatePath(`/rooms/${room_id}`)
+    revalidatePath('/rooms')
+    revalidatePath('/dashboard')
+
+    return { success: true }
+}
