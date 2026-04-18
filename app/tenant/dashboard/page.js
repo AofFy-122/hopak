@@ -1,11 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslation } from '@/lib/i18n'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { updateTenantProfileAction } from '@/services/tenantActions'
+import { redeemDiscountAction } from '@/services/behaviorActions'
 import '@/styles/dashboard.css'
 import '@/styles/tenants.css'
 
-export default async function TenantDashboardPage() {
+export default async function TenantDashboardPage(props) {
+    const searchParams = await props.searchParams
+    const isEditMode = searchParams?.action === 'edit_profile'
+
     const supabase = await createClient()
-    const { t } = await getTranslation()
+    const { t, lang } = await getTranslation()
 
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -80,6 +87,29 @@ export default async function TenantDashboardPage() {
     const room = contract.rooms
     const building = room?.floors?.buildings?.name
 
+    // 3. Fetch pending invoice for the active contract
+    let pendingInvoice = null
+    let alreadyRedeemed = false
+    
+    if (contract) {
+        const { data: invoice } = await supabase
+            .from('invoices')
+            .select('id, month, year, status, total_amount, invoice_items(name)')
+            .eq('contract_id', contract.id)
+            .eq('status', 'pending')
+            .order('year', { ascending: false })
+            .order('month', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            
+        if (invoice) {
+            pendingInvoice = invoice
+            if (invoice.invoice_items) {
+                alreadyRedeemed = invoice.invoice_items.some(item => item.name.includes('Points Discount'))
+            }
+        }
+    }
+
     // === Fetch Behavior Logs ===
     const { data: behaviorLogs } = await supabase
         .from('behavior_logs')
@@ -89,6 +119,22 @@ export default async function TenantDashboardPage() {
         .limit(10)
 
     const logs = behaviorLogs || []
+
+    // Check if redeemed this calendar month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { data: recentDiscountLog } = await supabase
+        .from('behavior_logs')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .ilike('reason', '%invoice discount%')
+        .gte('created_at', startOfMonth.toISOString())
+        .limit(1)
+        .maybeSingle()
+
+    const redeemedThisMonth = !!recentDiscountLog;
 
     // === Behavior Score Logic ===
     const MAX_SCORE = 200
@@ -179,6 +225,28 @@ export default async function TenantDashboardPage() {
                         <p className="score-description">
                             {t('behaviorScoreDesc')}
                         </p>
+                        
+                        {redeemedThisMonth ? (
+                            <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-light)', fontSize: '0.875rem', textAlign: 'center' }}>
+                                {lang === 'th' ? 'คุณได้ใช้สิทธิ์แลกส่วนลดของเดือนนี้ไปแล้ว' : 'You have already redeemed your discount for this month.'}
+                            </div>
+                        ) : score >= 50 && pendingInvoice && !alreadyRedeemed ? (
+                            <form action={async (formData) => {
+                                'use server';
+                                const res = await redeemDiscountAction(formData);
+                                if (res?.error) {
+                                    redirect(`/tenant/dashboard?error=${encodeURIComponent(res.error)}`);
+                                }
+                            }} style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+                                <input type="hidden" name="tenant_id" value={tenant.id} />
+                                <input type="hidden" name="invoice_id" value={pendingInvoice.id} />
+                                <button type="submit" className="btn btn-primary" style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary)', backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, #4facfe 100%)', border: 'none' }}>
+                                    <span style={{ fontSize: '1.25rem' }}>🎁</span> 
+                                    Redeem 50 Pts for 10% Discount
+                                </button>
+                            </form>
+                        ) : null}
+                        
                         <div className="score-progress-bar">
                             <div
                                 className={`score-progress-fill tier-${tier.key}`}
@@ -223,23 +291,74 @@ export default async function TenantDashboardPage() {
             </div>
 
             <div className="card" style={{ marginTop: '2rem' }}>
-                <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                    {t('tenantProfile') || 'My Profile'}
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
-                    <div>
-                        <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Name</div>
-                        <div style={{ fontWeight: '500' }}>{tenant.first_name} {tenant.last_name}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Email</div>
-                        <div style={{ fontWeight: '500' }}>{tenant.email || '-'}</div>
-                    </div>
-                    <div>
-                        <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Phone</div>
-                        <div style={{ fontWeight: '500' }}>{tenant.phone || '-'}</div>
-                    </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                    <h3 style={{ margin: 0 }}>
+                        {t('tenantProfile') || 'My Profile'}
+                    </h3>
+                    {!isEditMode && (
+                        <Link href="/tenant/dashboard?action=edit_profile" className="btn btn-outline" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}>
+                            {t('edit') || 'Edit'}
+                        </Link>
+                    )}
                 </div>
+                
+                {searchParams?.error && (
+                    <div style={{ color: 'red', marginBottom: '1rem', padding: '0.5rem', backgroundColor: '#fee2e2', borderRadius: '4px' }}>
+                        <strong>Error:</strong> {searchParams.error}
+                    </div>
+                )}
+                
+                {isEditMode ? (
+                    <form action={async (formData) => {
+                        'use server';
+                        const res = await updateTenantProfileAction(formData);
+                        if (res?.error) {
+                            redirect(`/tenant/dashboard?action=edit_profile&error=${encodeURIComponent(res.error)}`);
+                        } else {
+                            redirect('/tenant/dashboard');
+                        }
+                    }}>
+                        <input type="hidden" name="tenant_id" value={tenant.id} />
+                        <input type="hidden" name="user_id" value={user.id} />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+                            <div>
+                                <label className="tenant-form-label">{t('firstName') || 'First Name'}</label>
+                                <input name="first_name" required className="tenant-form-input" defaultValue={tenant.first_name} />
+                            </div>
+                            <div>
+                                <label className="tenant-form-label">{t('lastName') || 'Last Name'}</label>
+                                <input name="last_name" required className="tenant-form-input" defaultValue={tenant.last_name} />
+                            </div>
+                            <div>
+                                <label className="tenant-form-label">{t('email') || 'Email'}</label>
+                                <input name="email" type="email" required className="tenant-form-input" defaultValue={tenant.email || ''} />
+                            </div>
+                            <div>
+                                <label className="tenant-form-label">{t('phone') || 'Phone'}</label>
+                                <input name="phone" className="tenant-form-input" defaultValue={tenant.phone || ''} />
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                            <button type="submit" className="btn btn-primary">{t('save') || 'Save'}</button>
+                            <Link href="/tenant/dashboard" className="btn btn-outline">{t('cancel') || 'Cancel'}</Link>
+                        </div>
+                    </form>
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginTop: '1rem' }}>
+                        <div>
+                            <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Name</div>
+                            <div style={{ fontWeight: '500' }}>{tenant.first_name} {tenant.last_name}</div>
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Email</div>
+                            <div style={{ fontWeight: '500' }}>{tenant.email || '-'}</div>
+                        </div>
+                        <div>
+                            <div style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Phone</div>
+                            <div style={{ fontWeight: '500' }}>{tenant.phone || '-'}</div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

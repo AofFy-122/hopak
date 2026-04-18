@@ -151,3 +151,54 @@ export async function assignExistingTenantAction(formData) {
 
     return { success: true }
 }
+
+export async function updateTenantProfileAction(formData) {
+    const supabase = await createClient()
+
+    const tenant_id = formData.get('tenant_id')
+    const user_id = formData.get('user_id')
+    
+    const first_name = formData.get('first_name')
+    const last_name = formData.get('last_name')
+    const phone = formData.get('phone')
+    const email = formData.get('email')
+
+    if (!tenant_id || !first_name || !last_name) {
+        return { error: 'Missing required fields' }
+    }
+
+    // Update tenants table
+    const { error: tenantError } = await supabase
+        .from('tenants')
+        .update({
+            first_name,
+            last_name,
+            phone,
+            email
+        })
+        .eq('id', tenant_id)
+
+    if (tenantError) {
+        return { error: tenantError.message }
+    }
+
+    // Update users table if user_id is linked
+    if (user_id) {
+        // Just update full_name, phone. We avoid updating email blindly to avoid auth sync issues unless necessary, but we update full_name and phone in public.users
+        const { error: userError } = await supabase
+            .from('users')
+            .update({
+                full_name: `${first_name} ${last_name}`,
+                phone
+            })
+            .eq('id', user_id)
+            
+        if (userError) {
+            console.error('Error updating users table:', userError)
+        }
+    }
+
+    revalidatePath('/tenant/dashboard')
+    revalidatePath('/tenants')
+    return { success: true }
+}

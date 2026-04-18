@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { generateMonthlyInvoices, payInvoiceAction } from '@/services/billingService'
+import { generateMonthlyInvoices, payInvoiceAction, deleteInvoiceAction } from '@/services/billingService'
 import { recordMeterAction } from '@/services/meterActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -66,6 +66,13 @@ export default async function BillingPage(props) {
         const invoice_id = formData.get('invoice_id')
         const amount = formData.get('amount')
         await payInvoiceAction(invoice_id, amount)
+        redirect('/billing')
+    }
+
+    const handleDeleteInvoice = async (formData) => {
+        'use server'
+        const invoice_id = formData.get('invoice_id')
+        await deleteInvoiceAction(invoice_id)
         redirect('/billing')
     }
 
@@ -158,7 +165,7 @@ export default async function BillingPage(props) {
                                         })()}
                                     </td>
                                     <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
-                                    <td className="text-right billing-action-cell">
+                                    <td className="text-right billing-action-cell" style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                         {invoice.status !== 'paid' && (
                                             <form action={handlePayInvoice}>
                                                 <input type="hidden" name="invoice_id" value={invoice.id} />
@@ -167,6 +174,12 @@ export default async function BillingPage(props) {
                                             </form>
                                         )}
                                         <Link href={`/billing/${invoice.id}`} className="btn btn-outline billing-sm-btn billing-view-btn">{t('view')}</Link>
+                                        <form action={handleDeleteInvoice}>
+                                            <input type="hidden" name="invoice_id" value={invoice.id} />
+                                            <button type="submit" className="btn btn-outline billing-sm-btn" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
+                                                {t('delete') || 'Delete'}
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             ))}

@@ -23,6 +23,7 @@ export default async function InvoiceDetailsPage(props) {
         .from('invoices')
         .select(`
             *,
+            invoice_items(*),
             contracts (
                 start_date,
                 end_date,
@@ -155,6 +156,19 @@ export default async function InvoiceDetailsPage(props) {
                                 </tr>
                             </>
                         )}
+                        {invoice.invoice_items?.map((item, idx) => {
+                            if (!item.name.toLowerCase().includes('discount') && !item.name.toLowerCase().includes('ส่วนลด')) return null;
+                            return (
+                                <tr key={'extra-'+idx}>
+                                    <td className="invoice-item-td" style={{ color: 'var(--danger)', fontWeight: '500' }}>
+                                        {lang === 'th' ? `ส่วนลด 10% (จากการแลก 50 คะแนน)` : item.name}
+                                    </td>
+                                    <td className="invoice-item-td-right" style={{ color: 'var(--danger)', fontWeight: '500' }}>
+                                        -฿{Math.abs(parseFloat(item.amount)).toLocaleString()}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
 
