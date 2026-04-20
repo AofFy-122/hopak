@@ -63,25 +63,46 @@ export default async function RoomDetailsPage(props) {
     let allTenants = []
     if (room.status === 'available' && isAssign) {
         const branch_id = room.floors?.buildings?.branch_id
-        if (branch_id) {
-            const { data: tenantsData } = await supabase
-                .from('tenants')
-                .select(`
-                    id, 
-                    first_name, 
-                    last_name, 
-                    email,
-                    contracts(is_active)
-                `)
-                .eq('branch_id', branch_id)
-                .order('first_name')
-                
-            if (tenantsData) {
-                allTenants = tenantsData.filter(tenant => {
-                    const activeContracts = tenant.contracts?.filter(c => c.is_active === true) || []
-                    return activeContracts.length === 0
-                })
-            }
+        
+        const { data: tenantsData } = await supabase
+            .from('tenants')
+            .select(`
+                id, 
+                first_name, 
+                last_name, 
+                email,
+                user_id,
+                branch_id,
+                contracts(is_active)
+            `)
+            .order('first_name')
+            
+        if (tenantsData) {
+            allTenants = tenantsData.filter(tenant => {
+                if (tenant.branch_id && branch_id && tenant.branch_id !== branch_id) return false;
+                const activeContracts = tenant.contracts?.filter(c => c.is_active === true) || []
+                return activeContracts.length === 0
+            })
+        }
+        
+        const { data: pendingUsers } = await supabase
+            .from('users')
+            .select('*')
+            .eq('role', 'tenant')
+
+        if (pendingUsers) {
+            const existingUserIds = new Set((tenantsData || []).map(t => t.user_id).filter(Boolean))
+            const newTenants = pendingUsers
+                .filter(u => !existingUserIds.has(u.id))
+                .map(u => ({
+                    id: `pending-${u.id}`,
+                    first_name: u.full_name?.split(' ')[0] || 'New User',
+                    last_name: u.full_name?.split(' ').slice(1).join(' ') || '',
+                    email: u.email || '',
+                    is_pending: true
+                }))
+            
+            allTenants = [...newTenants, ...allTenants]
         }
     }
 
@@ -201,7 +222,9 @@ export default async function RoomDetailsPage(props) {
                             <select name="tenant_id" required className="room-form-input">
                                 <option value="">-- Select a tenant --</option>
                                 {allTenants.map(t => (
-                                    <option key={t.id} value={t.id}>{t.first_name} {t.last_name} ({t.email || 'No email'})</option>
+                                    <option key={t.id} value={t.id}>
+                                        {t.is_pending ? '🆕 ' : ''}{t.first_name} {t.last_name} ({t.email || 'No email'})
+                                    </option>
                                 ))}
                             </select>
                         </div>

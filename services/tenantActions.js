@@ -102,7 +102,7 @@ export async function admitTenantAction(formData, branch_id) {
 export async function assignExistingTenantAction(formData) {
     const supabase = await createClient()
 
-    const tenant_id = formData.get('tenant_id')
+    let tenant_id = formData.get('tenant_id')
     const room_id = formData.get('room_id')
     const start_date = formData.get('start_date')
     const end_date = formData.get('end_date')
@@ -113,12 +113,37 @@ export async function assignExistingTenantAction(formData) {
 
     const { data: roomCheck, error: roomCheckError } = await supabase
         .from('rooms')
-        .select('status')
+        .select('status, floors(buildings(branch_id))')
         .eq('id', room_id)
         .single()
 
     if (roomCheckError || !roomCheck || roomCheck.status !== 'available') {
         return { error: 'This room is not available.' }
+    }
+    
+    // Resolve pending newly-registered users who don't have a tenant profile yet
+    if (tenant_id.toString().startsWith('pending-')) {
+        const user_id = tenant_id.replace('pending-', '')
+        const branch_id = roomCheck.floors?.buildings?.branch_id
+        
+        const { data: pendingUser } = await supabase.from('users').select('*').eq('id', user_id).single()
+        if (!pendingUser) return { error: 'Pending user not found' }
+        
+        const { data: newTenant, error: tenantError } = await supabase
+            .from('tenants')
+            .insert([{
+                user_id,
+                first_name: pendingUser.full_name?.split(' ')[0] || 'Unknown',
+                last_name: pendingUser.full_name?.split(' ').slice(1).join(' ') || '',
+                email: pendingUser.email,
+                phone: pendingUser.phone || '',
+                branch_id
+            }])
+            .select()
+            .single()
+            
+        if (tenantError) return { error: 'Failed to create tenant profile: ' + tenantError.message }
+        tenant_id = newTenant.id
     }
 
     const { error: contractError } = await supabase

@@ -33,14 +33,43 @@ export async function generateMonthlyInvoices(month, year, branch_id) {
 
         const { data: existingInvoices } = await supabase
             .from('invoices')
-            .select('id, status')
+            .select('id, status, total_amount, invoice_items(name)')
             .eq('contract_id', contract.id)
             .eq('month', month)
             .eq('year', year)
             .limit(1)
 
         if (existingInvoices && existingInvoices.length > 0) {
-            // Skip recreating invoice if it already exists to preserve applied discounts
+            // Already exists. Check if we need to supplement missing meter usage.
+            const currentInvoice = existingInvoices[0]
+            if (currentInvoice.status === 'pending') {
+                const hasUtilities = currentInvoice.invoice_items?.some(i => i.name.includes('Water') || i.name.includes('Electricity'))
+                
+                if (!hasUtilities) {
+                    const { data: currentMeter } = await supabase
+                        .from('meter_records')
+                        .select('water_unit, electric_unit')
+                        .eq('room_id', contract.room_id)
+                        .eq('month', month)
+                        .eq('year', year)
+                        .single()
+                        
+                    if (currentMeter) {
+                        const waterCost = parseFloat(currentMeter.water_unit) * 18
+                        const electricCost = parseFloat(currentMeter.electric_unit) * 8
+                        
+                        if (waterCost > 0 || electricCost > 0) {
+                            const updatedTotal = parseFloat(currentInvoice.total_amount) + waterCost + electricCost
+                            await supabase.from('invoices').update({ total_amount: updatedTotal, subtotal: updatedTotal }).eq('id', currentInvoice.id)
+                            
+                            const appendedItems = []
+                            if (waterCost > 0) appendedItems.push({ invoice_id: currentInvoice.id, name: 'Water Usage', amount: waterCost })
+                            if (electricCost > 0) appendedItems.push({ invoice_id: currentInvoice.id, name: 'Electricity Usage', amount: electricCost })
+                            await supabase.from('invoice_items').insert(appendedItems)
+                        }
+                    }
+                }
+            }
             continue
         }
 

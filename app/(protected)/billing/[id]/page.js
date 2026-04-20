@@ -144,27 +144,17 @@ export default async function InvoiceDetailsPage(props) {
                             <td className="invoice-item-td">{t('roomRent') || 'Room Rent'} ({room?.type})</td>
                             <td className="invoice-item-td-right">฿{parseFloat(room?.monthly_price || 0).toLocaleString()}</td>
                         </tr>
-                        {meterReading && (
-                            <>
-                                <tr>
-                                    <td className="invoice-item-td">{t('waterUsage') || 'Water Usage'} ({meterReading.water_unit} {t('units') || 'units'})</td>
-                                    <td className="invoice-item-td-right">฿{parseFloat(meterReading.water_unit * 18).toLocaleString()}</td>
-                                </tr>
-                                <tr>
-                                    <td className="invoice-item-td">{t('electricityUsage') || 'Electricity Usage'} ({meterReading.electric_unit} {t('units') || 'units'})</td>
-                                    <td className="invoice-item-td-right">฿{parseFloat(meterReading.electric_unit * 8).toLocaleString()}</td>
-                                </tr>
-                            </>
-                        )}
                         {invoice.invoice_items?.map((item, idx) => {
-                            if (!item.name.toLowerCase().includes('discount') && !item.name.toLowerCase().includes('ส่วนลด')) return null;
+                            if (item.name === 'Room Rent') return null; // Already rendered explicitly above for layout purposes
+                            
+                            const isDiscount = item.name.toLowerCase().includes('discount') || item.name.toLowerCase().includes('ส่วนลด');
                             return (
-                                <tr key={'extra-'+idx}>
-                                    <td className="invoice-item-td" style={{ color: 'var(--danger)', fontWeight: '500' }}>
-                                        {lang === 'th' ? `ส่วนลด 10% (จากการแลก 50 คะแนน)` : item.name}
+                                <tr key={'item-'+idx}>
+                                    <td className="invoice-item-td" style={isDiscount ? { color: 'var(--danger)', fontWeight: '500' } : {}}>
+                                        {lang === 'th' && isDiscount ? `ส่วนลด 10% (จากการแลกคะแนน)` : t(item.name) || item.name}
                                     </td>
-                                    <td className="invoice-item-td-right" style={{ color: 'var(--danger)', fontWeight: '500' }}>
-                                        -฿{Math.abs(parseFloat(item.amount)).toLocaleString()}
+                                    <td className="invoice-item-td-right" style={isDiscount ? { color: 'var(--danger)', fontWeight: '500' } : {}}>
+                                        {isDiscount ? '-' : ''}฿{Math.abs(parseFloat(item.amount)).toLocaleString()}
                                     </td>
                                 </tr>
                             );
