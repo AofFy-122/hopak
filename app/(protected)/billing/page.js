@@ -6,30 +6,53 @@ import Link from 'next/link'
 import { getTranslation } from '@/lib/i18n'
 import '@/styles/billing.css'
 
+
+const ITEMS_PER_PAGE = 10
+
 export default async function BillingPage(props) {
     const searchParams = await props.searchParams
     const showMeterForm = searchParams?.action === 'meter'
 
+    // รับค่าจาก URL สำหรับ Search และ Pagination
+    const searchQuery = searchParams?.query || ''
+    const currentPage = Number(searchParams?.page) || 1
+
     const { t } = await getTranslation()
     const supabase = await createClient()
-
 
     const { data: branches } = await supabase.from('branches').select('id').limit(1)
     const branch_id = branches?.[0]?.id
 
     let invoices = []
     let activeRooms = []
+    let totalInvoices = 0
+    let totalPages = 1
 
     if (branch_id) {
-        const { data } = await supabase
+        
+        let queryBuilder = supabase
             .from('invoices')
-            .select('*, contracts!inner(rooms!inner(floors!inner(buildings!inner(branch_id)), room_number))')
+            .select('*, contracts!inner(rooms!inner(floors!inner(buildings!inner(branch_id)), room_number))', { count: 'exact' })
             .eq('contracts.rooms.floors.buildings.branch_id', branch_id)
+
+       
+        if (searchQuery) {
+            queryBuilder = queryBuilder.ilike('contracts.rooms.room_number', `%${searchQuery}%`)
+        }
+
+      
+        const from = (currentPage - 1) * ITEMS_PER_PAGE
+        const to = from + ITEMS_PER_PAGE - 1
+
+        const { data, count } = await queryBuilder
             .order('created_at', { ascending: false })
-            .limit(20)
+            .range(from, to)
+            
         invoices = data || []
+        totalInvoices = count || 0
+        totalPages = Math.ceil(totalInvoices / ITEMS_PER_PAGE)
 
-
+        
         const { data: rooms } = await supabase
             .from('rooms')
             .select('id, room_number, floors!inner(buildings!inner(branch_id))')
@@ -38,6 +61,7 @@ export default async function BillingPage(props) {
         activeRooms = rooms || []
     }
 
+    
     const closeForm = async () => {
         'use server'
         redirect('/billing')
@@ -83,6 +107,25 @@ export default async function BillingPage(props) {
                 </div>
             </div>
 
+            
+            <div className="search-container" style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+                <form method="GET" action="/billing" style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '400px' }}>
+                    <input 
+                        type="text" 
+                        name="query" 
+                        defaultValue={searchQuery} 
+                        placeholder="ค้นหาจากเลขห้อง..." 
+                        className="billing-form-input" 
+                        style={{ flex: 1 }}
+                    />
+                    <button type="submit" className="btn btn-primary">ค้นหา</button>
+                    {searchQuery && (
+                        <Link href="/billing" className="btn btn-outline">ล้าง</Link>
+                    )}
+                </form>
+            </div>
+
+            
             {showMeterForm && (
                 <div className="card billing-form-card">
                     <h3 className="billing-form-title">{t('recordMeter')}</h3>
@@ -124,54 +167,86 @@ export default async function BillingPage(props) {
             <div className="card">
                 {invoices.length === 0 ? (
                     <div className="billing-empty">
-                        {t('noInvoicesGenerated')}
+                        {searchQuery ? 'ไม่พบบิลสำหรับเลขห้องนี้' : t('noInvoicesGenerated')}
                     </div>
                 ) : (
-                    <table className="billing-table">
-                        <thead>
-                            <tr>
-                                <th>{t('room')}</th>
-                                <th>{t('period') || 'Period'}</th>
-                                <th>{t('amount') || 'Amount'}</th>
-                                <th>{t('status')}</th>
-                                <th>{t('dueDate')}</th>
-                                <th className="text-right">{t('actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {invoices.map(invoice => (
-                                <tr key={invoice.id}>
-                                    <td className="font-bold">{invoice.contracts?.rooms?.room_number}</td>
-                                    <td>{invoice.month}/{invoice.year}</td>
-                                    <td>฿{invoice.total_amount}</td>
-                                    <td>
-                                        {(() => {
-                                            let displayStatus = invoice.status;
-                                            if (invoice.status === 'pending' && new Date(invoice.due_date) < new Date()) {
-                                                displayStatus = 'overdue';
-                                            }
-                                            return (
-                                                <span className={`billing-status ${displayStatus === 'paid' ? 'billing-status-paid' : displayStatus === 'overdue' ? 'billing-status-overdue' : 'billing-status-warning'}`}>
-                                                    {t(displayStatus)}
-                                                </span>
-                                            );
-                                        })()}
-                                    </td>
-                                    <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
-                                    <td className="text-right billing-action-cell">
-                                        {invoice.status !== 'paid' && (
-                                            <form action={handlePayInvoice}>
-                                                <input type="hidden" name="invoice_id" value={invoice.id} />
-                                                <input type="hidden" name="amount" value={invoice.total_amount} />
-                                                <button type="submit" className="btn btn-primary billing-sm-btn">{t('markPaid')}</button>
-                                            </form>
-                                        )}
-                                        <Link href={`/billing/${invoice.id}`} className="btn btn-outline billing-sm-btn billing-view-btn">{t('view')}</Link>
-                                    </td>
+                    <>
+                        <table className="billing-table">
+                            <thead>
+                                <tr>
+                                    <th>{t('room')}</th>
+                                    <th>{t('period') || 'Period'}</th>
+                                    <th>{t('amount') || 'Amount'}</th>
+                                    <th>{t('status')}</th>
+                                    <th>{t('dueDate')}</th>
+                                    <th className="text-right">{t('actions')}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {invoices.map(invoice => (
+                                    <tr key={invoice.id}>
+                                        <td className="font-bold">{invoice.contracts?.rooms?.room_number}</td>
+                                        <td>{invoice.month}/{invoice.year}</td>
+                                        <td>฿{invoice.total_amount}</td>
+                                        <td>
+                                            {(() => {
+                                                let displayStatus = invoice.status;
+                                                if (invoice.status === 'pending' && new Date(invoice.due_date) < new Date()) {
+                                                    displayStatus = 'overdue';
+                                                }
+                                                return (
+                                                    <span className={`billing-status ${displayStatus === 'paid' ? 'billing-status-paid' : displayStatus === 'overdue' ? 'billing-status-overdue' : 'billing-status-warning'}`}>
+                                                        {t(displayStatus)}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </td>
+                                        <td>{new Date(invoice.due_date).toLocaleDateString()}</td>
+                                        <td className="text-right billing-action-cell">
+                                            {invoice.status !== 'paid' && (
+                                                <form action={handlePayInvoice}>
+                                                    <input type="hidden" name="invoice_id" value={invoice.id} />
+                                                    <input type="hidden" name="amount" value={invoice.total_amount} />
+                                                    <button type="submit" className="btn btn-primary billing-sm-btn">{t('markPaid')}</button>
+                                                </form>
+                                            )}
+                                            <Link href={`/billing/${invoice.id}`} className="btn btn-outline billing-sm-btn billing-view-btn">{t('view')}</Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        
+                        {/* Pagination Controls (ปุ่มเลื่อนหน้า) */}
+                        
+                        {totalPages > 1 && (
+                            <div className="pagination-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+                                <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                                    แสดง {invoices.length} จากทั้งหมด {totalInvoices} รายการ
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    {currentPage > 1 ? (
+                                        <Link href={`/billing?page=${currentPage - 1}${searchQuery ? `&query=${searchQuery}` : ''}`} className="btn btn-outline" style={{ padding: '0.25rem 0.75rem' }}>
+                                            ก่อนหน้า
+                                        </Link>
+                                    ) : (
+                                        <button className="btn btn-outline" disabled style={{ padding: '0.25rem 0.75rem', opacity: 0.5, cursor: 'not-allowed' }}>ก่อนหน้า</button>
+                                    )}
+                                    
+                                    <span style={{ margin: '0 0.5rem', fontWeight: '500' }}>หน้า {currentPage} / {totalPages}</span>
+                                    
+                                    {currentPage < totalPages ? (
+                                        <Link href={`/billing?page=${currentPage + 1}${searchQuery ? `&query=${searchQuery}` : ''}`} className="btn btn-outline" style={{ padding: '0.25rem 0.75rem' }}>
+                                            ถัดไป
+                                        </Link>
+                                    ) : (
+                                        <button className="btn btn-outline" disabled style={{ padding: '0.25rem 0.75rem', opacity: 0.5, cursor: 'not-allowed' }}>ถัดไป</button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
