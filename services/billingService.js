@@ -31,22 +31,46 @@ export async function generateMonthlyInvoices(month, year, branch_id) {
 
     for (const contract of contracts) {
 
-        const { data: existingInvoice } = await supabase
+        const { data: existingInvoices } = await supabase
             .from('invoices')
-            .select('id, status')
+            .select('id, status, total_amount, invoice_items(name)')
             .eq('contract_id', contract.id)
             .eq('month', month)
             .eq('year', year)
-            .single()
+            .limit(1)
 
-        if (existingInvoice) {
-            if (existingInvoice.status === 'pending' || existingInvoice.status === 'overdue') {
-                // Delete old items and invoice so it can be recreated with new meter data
-                await supabase.from('invoice_items').delete().eq('invoice_id', existingInvoice.id)
-                await supabase.from('invoices').delete().eq('id', existingInvoice.id)
-            } else {
-                continue
+        if (existingInvoices && existingInvoices.length > 0) {
+            // Already exists. Check if we need to supplement missing meter usage.
+            const currentInvoice = existingInvoices[0]
+            if (currentInvoice.status === 'pending') {
+                const hasUtilities = currentInvoice.invoice_items?.some(i => i.name.includes('Water') || i.name.includes('Electricity'))
+                
+                if (!hasUtilities) {
+                    const { data: currentMeter } = await supabase
+                        .from('meter_records')
+                        .select('water_unit, electric_unit')
+                        .eq('room_id', contract.room_id)
+                        .eq('month', month)
+                        .eq('year', year)
+                        .single()
+                        
+                    if (currentMeter) {
+                        const waterCost = parseFloat(currentMeter.water_unit) * 18
+                        const electricCost = parseFloat(currentMeter.electric_unit) * 8
+                        
+                        if (waterCost > 0 || electricCost > 0) {
+                            const updatedTotal = parseFloat(currentInvoice.total_amount) + waterCost + electricCost
+                            await supabase.from('invoices').update({ total_amount: updatedTotal, subtotal: updatedTotal }).eq('id', currentInvoice.id)
+                            
+                            const appendedItems = []
+                            if (waterCost > 0) appendedItems.push({ invoice_id: currentInvoice.id, name: 'Water Usage', amount: waterCost })
+                            if (electricCost > 0) appendedItems.push({ invoice_id: currentInvoice.id, name: 'Electricity Usage', amount: electricCost })
+                            await supabase.from('invoice_items').insert(appendedItems)
+                        }
+                    }
+                }
             }
+            continue
         }
 
 
@@ -237,5 +261,53 @@ export async function payInvoiceAction(invoice_id, amount) {
     revalidatePath('/dashboard')
     revalidatePath('/tenants')
 
+    return { success: true }
+}
+
+export async function deleteInvoiceAction(invoice_id) {
+    const supabase = await createClient()
+
+    // check if invoice had a discount point redemption
+    const { data: logs } = await supabase
+        .from('behavior_logs')
+        .select('*')
+        .eq('invoice_id', invoice_id)
+
+    if (logs && logs.length > 0) {
+        const discountLog = logs.find(l => l.score_change < 0 && l.reason.includes('invoice discount'));
+        if (discountLog) {
+            const { data: tenant } = await supabase.from('tenants').select('behavior_score').eq('id', discountLog.tenant_id).single()
+            if (tenant) {
+                const restoredScore = Math.min(200, tenant.behavior_score + 50);
+                await supabase.from('tenants').update({ behavior_score: restoredScore }).eq('id', discountLog.tenant_id)
+                
+                const { data: { user } } = await supabase.auth.getUser()
+                await supabase.from('behavior_logs').insert([{
+                    tenant_id: discountLog.tenant_id,
+                    score_change: 50,
+                    reason: 'Restored 50 points due to invoice deletion',
+                    recorded_by: user?.id
+                }])
+            }
+        }
+    }
+
+    // Delete related items to satisfy foreign key constraints
+    await supabase.from('invoice_items').delete().eq('invoice_id', invoice_id)
+    await supabase.from('payments').delete().eq('invoice_id', invoice_id)
+    await supabase.from('behavior_logs').delete().eq('invoice_id', invoice_id)
+
+    // Delete the invoice itself
+    const { error: invoiceError } = await supabase.from('invoices').delete().eq('id', invoice_id)
+    if (invoiceError) {
+        console.error('Error deleting invoice:', invoiceError);
+        return { error: invoiceError.message }
+    }
+
+    revalidatePath('/billing')
+    revalidatePath('/tenant/billing')
+    revalidatePath('/dashboard')
+    revalidatePath('/tenant/dashboard')
+    
     return { success: true }
 }

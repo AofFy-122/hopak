@@ -15,7 +15,7 @@ export async function login(formData) {
     })
 
     if (error) {
-        return { error: error.message }
+        redirect(`/login?error=${encodeURIComponent(error.message)}`)
     }
 
     const { data: userData } = await supabase
@@ -53,7 +53,7 @@ export async function signup(formData) {
     })
 
     if (error) {
-        return { error: error.message }
+        redirect(`/register?error=${encodeURIComponent(error.message)}`)
     }
 
 
@@ -82,6 +82,11 @@ export async function signup(formData) {
         }
     }
 
+
+    if (!data.session) {
+        // Handle Email Confirmation required scenario
+        redirect(`/login?message=${encodeURIComponent('Registration successful! Please check your email to verify your account.')}`)
+    }
 
     if (role === 'tenant') {
         redirect('/tenant/dashboard')

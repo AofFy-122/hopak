@@ -2,7 +2,11 @@ import { login } from '@/services/authActions'
 import Link from 'next/link'
 import '@/styles/auth.css'
 
-export default function LoginPage() {
+export default async function LoginPage(props) {
+    const searchParams = await props.searchParams
+    const error = searchParams?.error
+    const message = searchParams?.message
+
     return (
         <div className="auth-container">
             <div className="auth-card">
@@ -11,6 +15,18 @@ export default function LoginPage() {
                 </Link>
                 <h1 className="auth-title">Welcome Back</h1>
                 <p className="auth-subtitle">Please enter your details to sign in.</p>
+
+                {message && (
+                    <div style={{ backgroundColor: '#ecfdf5', color: '#047857', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                        {message}
+                    </div>
+                )}
+                
+                {error && (
+                    <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                        {error}
+                    </div>
+                )}
 
                 <form className="auth-form" action={login}>
                     <div className="form-group">

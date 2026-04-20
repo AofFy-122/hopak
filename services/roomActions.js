@@ -103,12 +103,43 @@ export async function deleteRoomAction(formData) {
     const supabase = await createClient()
     const roomId = formData.get('room_id')
     
+    // 1. Get contracts for this room
+    const { data: contracts } = await supabase.from('contracts').select('id').eq('room_id', roomId)
+    if (contracts && contracts.length > 0) {
+        const contractIds = contracts.map(c => c.id)
+        
+        // 2. Get invoices for these contracts
+        const { data: invoices } = await supabase.from('invoices').select('id').in('contract_id', contractIds)
+        if (invoices && invoices.length > 0) {
+            const invoiceIds = invoices.map(i => i.id)
+            
+            // Delete invoice dependencies
+            await supabase.from('invoice_items').delete().in('invoice_id', invoiceIds)
+            await supabase.from('payments').delete().in('invoice_id', invoiceIds)
+            
+            // Unlink behavior_logs if they belong to these invoices
+            await supabase.from('behavior_logs').update({ invoice_id: null }).in('invoice_id', invoiceIds)
+            
+            // Delete invoices
+            await supabase.from('invoices').delete().in('contract_id', contractIds)
+        }
+        
+        // Delete contracts
+        await supabase.from('contracts').delete().eq('room_id', roomId)
+    }
+
+    // 3. Delete other room dependencies
+    await supabase.from('meter_records').delete().eq('room_id', roomId)
+    await supabase.from('maintenance_requests').delete().eq('room_id', roomId)
+
+    // 4. Delete the room
     const { error } = await supabase
         .from('rooms')
         .delete()
         .eq('id', roomId)
         
     if (error) {
+        console.error('Error deleting room:', error);
         return { error: error.message }
     }
     

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { generateMonthlyInvoices, payInvoiceAction } from '@/services/billingService'
+import { generateMonthlyInvoices, payInvoiceAction, deleteInvoiceAction } from '@/services/billingService'
 import { recordMeterAction } from '@/services/meterActions'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -90,6 +90,13 @@ export default async function BillingPage(props) {
         const invoice_id = formData.get('invoice_id')
         const amount = formData.get('amount')
         await payInvoiceAction(invoice_id, amount)
+        redirect('/billing')
+    }
+
+    const handleDeleteInvoice = async (formData) => {
+        'use server'
+        const invoice_id = formData.get('invoice_id')
+        await deleteInvoiceAction(invoice_id)
         redirect('/billing')
     }
 

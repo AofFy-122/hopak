@@ -2,7 +2,10 @@ import { signup } from '@/services/authActions'
 import Link from 'next/link'
 import '@/styles/auth.css'
 
-export default function RegisterPage() {
+export default async function RegisterPage(props) {
+    const searchParams = await props.searchParams
+    const error = searchParams?.error
+
     return (
         <div className="auth-container">
             <div className="auth-card">
@@ -11,6 +14,12 @@ export default function RegisterPage() {
                 </Link>
                 <h1 className="auth-title">Create Account</h1>
                 <p className="auth-subtitle">Get started with Horganice today.</p>
+
+                {error && (
+                    <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                        {error}
+                    </div>
+                )}
 
                 <form className="auth-form" action={signup}>
                     <div className="form-group">
