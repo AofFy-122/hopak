@@ -1,22 +1,47 @@
 :root {
+  /* ==================================== */
+  /* 🎨 สีหลักของระบบ (ไม่เปลี่ยนตามธีม) */
+  /* ==================================== */
   --primary: #4F46E5;
   --primary-hover: #4338CA;
   --secondary: #10B981;
-  --background: #F3F4F6;
-  --surface: #FFFFFF;
-  --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
   --danger: #EF4444;
   --warning: #F59E0B;
   --success: #10B981;
+
+  /* 📏 ค่าคงที่ขนาดต่างๆ */
   --radius: 8px;
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --sidebar-width: 250px;
   --header-height: 64px;
+
+  /* ==================================== */
+  /* ☀️ โหมดสว่าง (Light Mode) */
+  /* ==================================== */
+  --background: #F3F4F6;
+  --surface: #FFFFFF;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --border: #E5E7EB;
 }
 
+/* ==================================== */
+/* 🌙 โหมดมืด (Dark Mode) */
+/* เขียนทับตัวแปรด้านบนเมื่อเปิดโหมดมืด */
+/* ==================================== */
+.dark {
+  --background: #121212;
+  --surface: #1e1e1e;
+  --text-main: #e0e0e0;
+  --text-muted: #9ca3af;
+  --border: #333333;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+}
+
+/* ==================================== */
+/* 🧩 โครงสร้างหลัก (Base Styles) */
+/* ==================================== */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -28,6 +53,8 @@ body {
   background-color: var(--background);
   color: var(--text-main);
   line-height: 1.5;
+  /* เพิ่ม Transition ให้เปลี่ยนสีนุ่มๆ ไม่กระชากสายตา */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 a {
@@ -42,9 +69,14 @@ button {
   font-family: inherit;
 }
 
+/* ==================================== */
+/* 📐 Layout (การจัดวาง) */
+/* ==================================== */
 .layout-container {
   display: flex;
   min-height: 100vh;
+  background-color: var(--background);
+  transition: background-color 0.3s ease;
 }
 
 .main-content {
@@ -61,12 +93,18 @@ button {
   width: 100%;
 }
 
+/* ==================================== */
+/* 💳 Components (ส่วนประกอบ) */
+/* ==================================== */
 .card {
-  background: var(--surface);
+  background-color: var(--surface);
   border-radius: var(--radius);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: 24px;
   margin-bottom: 24px;
+  /* ให้การ์ดมีอนิเมชั่นตอนสลับธีมด้วย */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn {
@@ -82,7 +120,7 @@ button {
 
 .btn-primary {
   background-color: var(--primary);
-  color: white;
+  color: white; /* ปุ่ม Primary ตัวอักษรสีขาวเสมอ */
 }
 
 .btn-primary:hover {
@@ -97,5 +135,5 @@ button {
 }
 
 .btn-outline:hover {
-  background: var(--background);
+  background-color: var(--background);
 }

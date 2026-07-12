@@ -4,6 +4,9 @@ import Link from 'next/link'
 import styles from './landing.module.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 
+// 1. นำเข้า ThemeToggle
+import ThemeToggle from '@/components/ThemeToggle'
+
 export default function Home() {
   const { t, language, toggleLanguage } = useLanguage()
 
@@ -26,6 +29,9 @@ export default function Home() {
         </nav>
 
         <div className={styles['auth-buttons']}>
+          {/* 2. วางปุ่มสลับธีมไว้ตรงนี้ (ก่อนปุ่มภาษา) */}
+          <ThemeToggle />
+
           <button
             onClick={toggleLanguage}
             className={`btn btn-outline ${styles['lang-btn']}`}

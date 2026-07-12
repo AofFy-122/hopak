@@ -4,23 +4,27 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    /* เปลี่ยนมารับสีจาก Global CSS */
+    background-color: var(--background);
+    color: var(--text-main);
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
-
 
 .landing-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 24px 48px;
-    background: rgba(255, 255, 255, 0.8);
+    /* ใช้สี Surface เพื่อให้สลับโหมดได้ */
+    background-color: var(--surface);
     backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .logo {
@@ -51,8 +55,8 @@
 .auth-buttons {
     display: flex;
     gap: 16px;
+    align-items: center;
 }
-
 
 .hero {
     flex: 1;
@@ -122,7 +126,6 @@
     box-shadow: 0 10px 20px -10px var(--primary);
 }
 
-
 .hero-visual {
     flex: 1;
     position: relative;
@@ -130,14 +133,14 @@
 }
 
 .glass-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    /* เปลี่ยนมาใช้ตัวแปรเพื่อรองรับโหมดมืด */
+    background-color: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 24px;
     padding: 32px;
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
     transform: rotate(2deg);
-    transition: transform 0.5s ease;
+    transition: transform 0.5s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .glass-card:hover {
@@ -154,33 +157,28 @@
 
 .mock-block {
     height: 24px;
-    background: var(--border);
+    background-color: var(--border); /* ใช้ var(--border) เป็นสีเทากลางๆ แทน */
     border-radius: 6px;
     margin-bottom: 12px;
 }
 
-.mock-block:nth-child(2) {
-    width: 80%;
-}
-
-.mock-block:nth-child(3) {
-    width: 60%;
-}
-
-.mock-block:nth-child(4) {
-    width: 90%;
-}
+.mock-block:nth-child(2) { width: 80%; }
+.mock-block:nth-child(3) { width: 60%; }
+.mock-block:nth-child(4) { width: 90%; }
 
 .floating-element {
     position: absolute;
-    background: white;
+    /* เปลี่ยนจาก white เป็น var(--surface) */
+    background-color: var(--surface);
     padding: 16px;
     border-radius: 16px;
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 12px;
     animation: float 6s ease-in-out infinite;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .float-1 {
@@ -207,43 +205,21 @@
     font-weight: bold;
 }
 
-
 @keyframes float {
-    0% {
-        transform: translateY(0px);
-    }
-
-    50% {
-        transform: translateY(-15px);
-    }
-
-    100% {
-        transform: translateY(0px);
-    }
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+    100% { transform: translateY(0px); }
 }
 
 @keyframes slideUp {
-    0% {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
-
 
 @media (max-width: 968px) {
     .hero {
@@ -251,15 +227,12 @@
         padding: 40px 24px;
         text-align: center;
     }
-
     .hero-description {
         margin: 0 auto 40px auto;
     }
-
     .hero-buttons {
         justify-content: center;
     }
-
     .nav-links {
         display: none;
     }
@@ -268,11 +241,16 @@
 .lang-btn {
     padding: 8px 16px;
     font-size: 0.875rem;
+    /* เปลี่ยนชื่อตัวแปรให้ตรงกับ globals.css */
     border-color: var(--border);
-    color: var(--text);
-    background-color: var(--bg);
+    color: var(--text-main);
+    background-color: transparent;
     border-radius: 20px;
     font-weight: 600;
+}
+
+.lang-btn:hover {
+    background-color: var(--background);
 }
 
 .hero-title-th {
@@ -286,6 +264,7 @@
 
 .mock-ui-header-title {
     font-weight: bold;
+    color: var(--text-main);
 }
 
 .mock-ui-header-stat {
@@ -300,6 +279,7 @@
 
 .float-stat-value {
     font-weight: bold;
+    color: var(--text-main);
 }
 
 .stat-circle-warning {
