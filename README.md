@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Horganice - Apartment Management System
+
+## Project Overview
+
+Horganice is a comprehensive, full-stack property management application designed to streamline operations for apartment owners and enhance the living experience for tenants. The system features a role-based portal distinguishing between administrative controls and tenant functionalities, ensuring efficiency and transparency in property management.
+
+## Key Features
+
+- **Role-Based Access Control (RBAC):** Dedicated portals and dashboards for administrative users (owners) and tenants.
+- **Tenant Management & Room Assignment:** Automated tenant profiling alongside seamless room assignment processes.
+- **Dynamic Billing & Invoicing System:** Automated monthly invoice generation, integrating utility meters (water and electricity) and dynamic updates for pending payments.
+- **Tenant Behavior Scoring:** An automated scoring mechanism that rewards timely payments and penalizes late submissions, visualized on an interactive dashboard widget with historical logs.
+- **Maintenance Tracking:** A dedicated module for tenants to submit and monitor maintenance requests associated with their assigned rooms.
+
+## Tech Stack
+
+- **Framework:** Next.js (v16) / React (v19)
+- **Language:** JavaScript
+- **Styling:** Vanilla CSS
+- **Database & Authentication:** Supabase (PostgreSQL)
+- **Architecture:** Full-stack Serverless utilizing Next.js App Router
+
+## Prerequisites
+
+Before getting started, ensure you have the following installed on your local development environment:
+
+- Node.js (v18.x or later recommended)
+- npm, yarn, pnpm, or bun
+- A Supabase account and project set up
 
 ## Getting Started
 
-First, run the development server:
+Follow these steps to set up the project locally:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Clone the repository and install dependencies:**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+2. **Environment Variables:**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   Ensure you configure the `.env` file in the root directory of the project with your Supabase credentials:
 
-## Learn More
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Run the development server:**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. **Access the application:**
 
-## Deploy on Vercel
+   Open [http://localhost:3000](http://localhost:3000) in your web browser to view the application.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/app`: Contains Next.js App Router pages and layouts.
+- `/components`: Reusable UI components.
+- `/contexts`: React contexts for global state management.
+- `/lib`: Utility functions and Supabase client configuration.
+- `/services`: External API and database service calls.
+- `/styles`: Global and modular Vanilla CSS files.
+- `/public`: Static assets.
+
+## License
+
+This project is proprietary and intended for private use.
